@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Spice Jar</title>
+    <style>
+        :root {
+            --primary: #e11d48; /* Spicy Red */
+            --primary-dark: #be123c;
+            --bg: #fff1f2;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --gray: #9ca3af;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { margin: 0; padding: 0; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; min-height: 100vh; }
+        
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            background: var(--card-bg);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Views */
+        .view { display: none; padding: 2rem; flex-direction: column; align-items: center; justify-content: center; height: 100%; animation: fadeIn 0.3s ease; }
+        .view.active { display: flex; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Typography & Elements */
+        h1 { color: var(--primary); margin-bottom: 0.5rem; font-size: 2.5rem; }
+        h2 { font-size: 1.5rem; margin-bottom: 1.5rem; text-align: center; }
+        p { text-align: center; line-height: 1.6; color: #4b5563; margin-bottom: 2rem; }
+        
+        .input-group { width: 100%; margin-bottom: 1rem; }
+        input { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; transition: 0.2s; }
+        input:focus { border-color: var(--primary); outline: none; }
+
+        .btn {
+            background-color: var(--primary); color: white; border: none; padding: 15px 30px;
+            border-radius: 50px; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+            width: 100%; margin-bottom: 10px; transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-outline { background-color: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-secondary { background-color: #f3f4f6; color: #374151; }
+
+        /* Specific Components */
+        .card-stack { width: 100%; height: 300px; position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: 2rem; }
+        .activity-card {
+            width: 100%; height: 100%; background: white; border: 2px solid var(--primary);
+            border-radius: 15px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .action-buttons { display: flex; gap: 10px; width: 100%; }
+        .choice-btn { flex: 1; padding: 15px; border-radius: 10px; border: none; font-size: 1.5rem; cursor: pointer; }
+        .no-btn { background-color: #fee2e2; color: #991b1b; }
+        .yes-btn { background-color: #dcfce7; color: #166534; }
+
+        .bucket-anim { font-size: 5rem; animation: bounce 1s infinite; margin: 2rem 0; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+        .result-box {
+            background: var(--bg); padding: 2rem; border-radius: 15px; border: 2px dashed var(--primary);
+            margin-bottom: 2rem; font-size: 1.5rem; font-weight: bold; color: var(--primary-dark);
+            text-align: center;
+        }
+
+        .helper-link { color: var(--primary); cursor: pointer; text-decoration: underline; font-size: 0.9rem; margin-top: 10px;}
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <div id="landing" class="view active">
+        <h1>Spice Jar 🌶️</h1>
+        <p>Sync up your desires. Join a group with your partner, swipe on ideas, and let the jar decide your night.</p>
+        <button class="btn" onclick="navTo('auth')">Get Started</button>
+        <div style="margin-top: 20px;"></div>
+    </div>
+
+    <div id="auth" class="view">
+        <h2>Who are you?</h2>
+        <div class="input-group">
+            <input type="text" id="username" placeholder="Username">
+        </div>
+        <div class="input-group">
+            <input type="text" id="groupName" placeholder="Group Name (e.g. 'DateNight22')">
+        </div>
+        <button class="btn" onclick="handleLogin()">Enter the Jar</button>
+        <p class="small">Use the same "Group Name" as your partner to connect!</p>
+    </div>
+
+    <div id="dashboard" class="view">
+        <h2 id="welcome-msg">Welcome!</h2>
+        <div id="status-area">
+            </div>
+        <button class="btn" id="start-btn" onclick="startSelection()">Start Swiping</button>
+        <button class="btn btn-outline" onclick="logout()">Log Out (Let Partner Login)</button>
+    </div>
+
+    <div id="selection" class="view">
+        <h2>Is this spicy enough?</h2>
+        <div class="card-stack">
+            <div class="activity-card" id="current-activity">Loading...</div>
+        </div>
+        <div class="action-buttons">
+            <button class="choice-btn no-btn" onclick="handleChoice(false)">❌ Nope</button>
+            <button class="choice-btn yes-btn" onclick="handleChoice(true)">🔥 Yes</button>
+        </div>
+    </div>
+
+    <div id="bucket" class="view">
+        <h2>The Jar is Full!</h2>
+        <p>You and your partner have matched on <span id="match-count">0</span> items.</p>
+        <div class="bucket-anim">🍯</div>
+        
+        <div id="result-display" style="display:none;">
+            <p>Tonight's Activity:</p>
+            <div class="result-box" id="result-text"></div>
+        </div>
+
+        <button class="btn" id="pull-btn" onclick="pullRandom()">Pull from Jar</button>
+        <button class="btn btn-secondary" onclick="resetGroup()">Reset & Start Over</button>
+    </div>
+
+</div>
+
+<script>
+    // --- CONFIGURATION ---
+    // EDIT THIS LIST for your specific "NSFW" needs. 
+    // Keeping it "PG-13 / Suggestive" for the demo code.
+    const ACTIVITIES = [
+        "Sensual Massage with Oil",
+        "Cook Dinner Together (Aprons Only)",
+        "Blindfolded Taste Test",
+        "Roleplay: Strangers at a Bar",
+        "Truth or Dare: Spicy Edition",
+        "Watch a Steamy Movie",
+        "Shower Together",
+        "Full Body Paint",
+        "Slow Dancing in Living Room",
+        "Breakfast in Bed (Tomorrow)"
+    ];
+
+    // --- STATE MANAGEMENT ---
+    let currentUser = null;
+    let currentGroup = null;
+    let currentActivityIndex = 0;
+    let userChoices = [];
+
+    // --- NAVIGATION ---
+    function navTo(viewId) {
+        document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+    }
+
+    // --- AUTH & GROUP LOGIC ---
+    function handleLogin() {
+        const username = document.getElementById('username').value.trim();
+        const groupName = document.getElementById('groupName').value.trim();
+
+        if (!username || !groupName) return alert("Please fill in both fields");
+
+        currentUser = username;
+        currentGroup = groupName;
+
+        // Load group data from LocalStorage
+        let groupData = JSON.parse(localStorage.getItem('spice_' + currentGroup)) || {
+            users: [],
+            selections: {}
+        };
+
+        // Add user if new
+        if (!groupData.users.includes(currentUser)) {
+            if (groupData.users.length >= 2) {
+                return alert("Group is full! Only 2 users allowed per jar.");
+            }
+            groupData.users.push(currentUser);
+        }
+
+        localStorage.setItem('spice_' + currentGroup, JSON.stringify(groupData));
+        
+        checkGroupStatus();
+    }
+
+    function checkGroupStatus() {
+        const groupData = JSON.parse(localStorage.getItem('spice_' + currentGroup));
+        const userHasPlayed = groupData.selections[currentUser] !== undefined;
+
+        document.getElementById('welcome-msg').innerText = `Hi, ${currentUser}!`;
+        
+        const statusDiv = document.getElementById('status-area');
+        let html = `<p>Group: <strong>${currentGroup}</strong></p>`;
+        
+        html += `<p>Users in Jar: ${groupData.users.join(' & ')}</p>`;
+
+        if (userHasPlayed) {
+            html += `<p>✅ You have finished your selections.</p>`;
+            document.getElementById('start-btn').style.display = 'none';
+            
+            // Check if partner played
+            const otherUser = groupData.users.find(u => u !== currentUser);
+            if (otherUser && groupData.selections[otherUser]) {
+                html += `<p>✅ ${otherUser} has also finished!</p>`;
+                setTimeout(() => navTo('bucket'), 1000); // Go to bucket
+                calculateMatches();
+                return;
+            } else {
+                html += `<p>⏳ Waiting for partner to finish...</p>`;
+            }
+        } else {
+            html += `<p>Ready to pick your favorites?</p>`;
+            document.getElementById('start-btn').style.display = 'block';
+        }
+
+        statusDiv.innerHTML = html;
+        navTo('dashboard');
+    }
+
+    // --- SELECTION LOGIC ---
+    function startSelection() {
+        currentActivityIndex = 0;
+        userChoices = [];
+        showActivity();
+        navTo('selection');
+    }
+
+    function showActivity() {
+        if (currentActivityIndex >= ACTIVITIES.length) {
+            finishSelection();
+            return;
+        }
+        document.getElementById('current-activity').innerText = ACTIVITIES[currentActivityIndex];
+    }
+
+    function handleChoice(liked) {
+        // Store index of liked item
+        if (liked) {
+            userChoices.push(currentActivityIndex);
+        }
+        currentActivityIndex++;
+        showActivity();
+    }
+
+    function finishSelection() {
+        let groupData = JSON.parse(localStorage.getItem('spice_' + currentGroup));
+        groupData.selections[currentUser] = userChoices;
+        localStorage.setItem('spice_' + currentGroup, JSON.stringify(groupData));
+        checkGroupStatus();
+    }
+
+    function logout() {
+        currentUser = null;
+        currentGroup = null;
+        document.getElementById('username').value = '';
+        navTo('landing');
+    }
+
+    // --- BUCKET / MATCH LOGIC ---
+    let commonMatches = [];
+
+    function calculateMatches() {
+        const groupData = JSON.parse(localStorage.getItem('spice_' + currentGroup));
+        const users = groupData.users;
+        
+        if (users.length < 2) return;
+
+        const listA = groupData.selections[users[0]];
+        const listB = groupData.selections[users[1]];
+
+        // Find intersection
+        const matchIndices = listA.filter(value => listB.includes(value));
+        
+        // Convert indices back to text
+        commonMatches = matchIndices.map(index => ACTIVITIES[index]);
+        
+        document.getElementById('match-count').innerText = commonMatches.length;
+    }
+
+    function pullRandom() {
+        if (commonMatches.length === 0) {
+            document.getElementById('result-display').style.display = 'block';
+            document.getElementById('result-text').innerText = "No matches found! Try being more open-minded? 😉";
+            return;
+        }
+
+        const randomIndex = Math.floor(Math.random() * commonMatches.length);
+        const winner = commonMatches[randomIndex];
+
+        // UI Reveal
+        const resultBox = document.getElementById('result-text');
+        resultBox.innerText = "...";
+        document.getElementById('result-display').style.display = 'block';
+        
+        let flashCount = 0;
+        let flashInterval = setInterval(() => {
+            resultBox.innerText = commonMatches[Math.floor(Math.random() * commonMatches.length)];
+            flashCount++;
+            if(flashCount > 10) {
+                clearInterval(flashInterval);
+                resultBox.innerText = winner;
+            }
+        }, 100);
+    }
+
+    function resetGroup() {
+        if(confirm("This will clear all choices for this group. Are you sure?")) {
+            localStorage.removeItem('spice_' + currentGroup);
+            logout();
+        }
+    }
+</script>
+
+</body>
+</html>
