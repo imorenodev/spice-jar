@@ -2,326 +2,451 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Spice Jar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spice Jar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #e11d48; /* Spicy Red */
-            --primary-dark: #be123c;
-            --bg: #fff1f2;
-            --card-bg: #ffffff;
-            --text: #1f2937;
-            --gray: #9ca3af;
+            --bg-gradient: linear-gradient(135deg, #2b0a3d 0%, #4a1c40 100%);
+            --card-bg: #1e1b2e;
+            --primary: #ff4757;
+            --secondary: #2ed573;
+            --accent: #ffa502;
+            --text-main: #ffffff;
+            --text-muted: #a4b0be;
+            --shadow: 0 10px 30px rgba(0,0,0,0.5);
+            --glass: rgba(255, 255, 255, 0.1);
         }
 
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        body { margin: 0; padding: 0; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; min-height: 100vh; }
-        
-        .app-container {
-            width: 100%;
-            max-width: 450px;
-            background: var(--card-bg);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+        * { box-sizing: border-box; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+
+        body {
+            margin: 0; padding: 0;
+            background: var(--bg-gradient);
+            font-family: 'Quicksand', sans-serif;
+            color: var(--text-main);
+            height: 100vh; overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .app-frame {
+            width: 100%; height: 100%;
+            max-width: 420px;
+            background: rgba(0,0,0,0.2);
             position: relative;
+            display: flex; flex-direction: column;
+            overflow: hidden;
         }
 
         /* Views */
-        .view { display: none; padding: 2rem; flex-direction: column; align-items: center; justify-content: center; height: 100%; animation: fadeIn 0.3s ease; }
-        .view.active { display: flex; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Typography & Elements */
-        h1 { color: var(--primary); margin-bottom: 0.5rem; font-size: 2.5rem; }
-        h2 { font-size: 1.5rem; margin-bottom: 1.5rem; text-align: center; }
-        p { text-align: center; line-height: 1.6; color: #4b5563; margin-bottom: 2rem; }
+        .view {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 2rem;
+            align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: scale(0.95);
+            backdrop-filter: blur(5px);
+            z-index: 1;
+        }
         
-        .input-group { width: 100%; margin-bottom: 1rem; }
-        input { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; transition: 0.2s; }
-        input:focus { border-color: var(--primary); outline: none; }
-
-        .btn {
-            background-color: var(--primary); color: white; border: none; padding: 15px 30px;
-            border-radius: 50px; font-size: 1.1rem; font-weight: bold; cursor: pointer;
-            width: 100%; margin-bottom: 10px; transition: transform 0.1s;
-        }
-        .btn:active { transform: scale(0.98); }
-        .btn-outline { background-color: transparent; border: 2px solid var(--primary); color: var(--primary); }
-        .btn-secondary { background-color: #f3f4f6; color: #374151; }
-
-        /* Specific Components */
-        .card-stack { width: 100%; height: 300px; position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: 2rem; }
-        .activity-card {
-            width: 100%; height: 100%; background: white; border: 2px solid var(--primary);
-            border-radius: 15px; display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        .view.active {
+            opacity: 1; pointer-events: auto;
+            transform: scale(1);
+            z-index: 10;
         }
 
-        .action-buttons { display: flex; gap: 10px; width: 100%; }
-        .choice-btn { flex: 1; padding: 15px; border-radius: 10px; border: none; font-size: 1.5rem; cursor: pointer; }
-        .no-btn { background-color: #fee2e2; color: #991b1b; }
-        .yes-btn { background-color: #dcfce7; color: #166534; }
+        h1 { font-size: 3rem; margin: 0; background: -webkit-linear-gradient(0deg, #ff4757, #ffa502); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+        h2 { font-size: 1.8rem; margin-bottom: 1rem; text-align: center; }
+        p { text-align: center; color: var(--text-muted); line-height: 1.5; }
 
-        .bucket-anim { font-size: 5rem; animation: bounce 1s infinite; margin: 2rem 0; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .input-glass {
+            background: var(--glass); border: 1px solid rgba(255,255,255,0.2);
+            padding: 15px; border-radius: 12px; color: white; width: 100%;
+            margin-bottom: 15px; font-size: 1rem; outline: none; text-align: center;
+            transition: 0.3s;
+        }
+        .input-glass:focus { border-color: var(--primary); background: rgba(255,255,255,0.15); }
 
-        .result-box {
-            background: var(--bg); padding: 2rem; border-radius: 15px; border: 2px dashed var(--primary);
-            margin-bottom: 2rem; font-size: 1.5rem; font-weight: bold; color: var(--primary-dark);
-            text-align: center;
+        .btn-gamified {
+            background: linear-gradient(90deg, #ff4757, #ff6b81);
+            color: white; border: none; padding: 16px; width: 100%;
+            border-radius: 50px; font-size: 1.1rem; font-weight: 700;
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+            cursor: pointer; position: relative; overflow: hidden;
+            transition: transform 0.1s; margin-top: 10px;
+        }
+        .btn-gamified:active { transform: scale(0.96); }
+        .btn-secondary { background: transparent; border: 2px solid rgba(255,255,255,0.2); box-shadow: none; }
+
+        /* DECK AREA */
+        .deck-container {
+            width: 100%; height: 400px; position: relative;
+            margin: 20px 0; perspective: 1000px;
+            /* Important for dragging */
+            touch-action: none; 
+        }
+        
+        .card {
+            width: 100%; height: 100%;
+            background: var(--card-bg);
+            border-radius: 20px;
+            position: absolute; top: 0; left: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 30px; text-align: center;
+            font-size: 1.8rem; font-weight: 700;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255,255,255,0.1);
+            /* Transformation handled by JS during drag, CSS during release */
+            transform-origin: 50% 100%;
+            will-change: transform;
+            cursor: grab;
+        }
+        
+        .card:active { cursor: grabbing; }
+
+        /* Overlay indicators (Like/Nope) */
+        .card::after {
+            content: ''; position: absolute; top: 20px; right: 20px;
+            font-size: 2rem; opacity: 0; font-weight: bold;
+            border: 4px solid; border-radius: 10px; padding: 5px 10px; transform: rotate(15deg);
         }
 
-        .helper-link { color: var(--primary); cursor: pointer; text-decoration: underline; font-size: 0.9rem; margin-top: 10px;}
+        /* Animations */
+        .animate-yes { animation: flyOutRight 0.5s forwards; }
+        .animate-no { animation: flyOutLeft 0.5s forwards; }
+        .reset-anim { transition: transform 0.3s ease; }
+
+        @keyframes flyOutRight { to { transform: translateX(150%) rotate(25deg); opacity: 0; } }
+        @keyframes flyOutLeft { to { transform: translateX(-150%) rotate(-25deg); opacity: 0; } }
+
+        .game-controls { display: flex; gap: 30px; width: 100%; justify-content: center; z-index: 20; }
+        .control-btn {
+            width: 70px; height: 70px; border-radius: 50%; border: none;
+            font-size: 2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .btn-no { background: #2f3542; color: #ff4757; }
+        .btn-yes { background: white; color: #2ed573; }
+        .control-btn:active { transform: scale(0.9); }
+
+        .progress-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 20px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--secondary); width: 0%; transition: width 0.3s; }
+
+        .jar-glow { font-size: 6rem; filter: drop-shadow(0 0 20px rgba(255, 165, 2, 0.6)); animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+        .result-card {
+            background: white; color: #2b0a3d; padding: 2rem;
+            border-radius: 20px; width: 100%; text-align: center;
+            font-size: 1.5rem; font-weight: bold;
+            transform: scale(0); animation: popIn 0.5s forwards 0.2s;
+        }
+        @keyframes popIn { to { transform: scale(1); } }
+
+        #confetti { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
     </style>
 </head>
 <body>
 
-<div class="app-container">
+<div class="app-frame">
+    <canvas id="confetti"></canvas>
 
     <div id="landing" class="view active">
-        <h1>Spice Jar 🌶️</h1>
-        <p>Sync up your desires. Join a group with your partner, swipe on ideas, and let the jar decide your night.</p>
-        <button class="btn" onclick="navTo('auth')">Get Started</button>
-        <div style="margin-top: 20px;"></div>
+        <div style="font-size: 4rem; margin-bottom:10px;">🌶️</div>
+        <h1>Spice Jar</h1>
+        <p>Swipe. Match. Play.</p>
+        <div style="margin-top: 30px; width: 100%;">
+            <button class="btn-gamified" onclick="navTo('auth')">Enter</button>
+        </div>
     </div>
 
     <div id="auth" class="view">
-        <h2>Who are you?</h2>
-        <div class="input-group">
-            <input type="text" id="username" placeholder="Username">
-        </div>
-        <div class="input-group">
-            <input type="text" id="groupName" placeholder="Group Name (e.g. 'DateNight22')">
-        </div>
-        <button class="btn" onclick="handleLogin()">Enter the Jar</button>
-        <p class="small">Use the same "Group Name" as your partner to connect!</p>
+        <h2>Identity</h2>
+        <input type="text" id="username" class="input-glass" placeholder="Your Nickname">
+        <input type="text" id="groupName" class="input-glass" placeholder="Secret Room Code">
+        <button class="btn-gamified" onclick="handleLogin()">Join Room</button>
+        <p style="font-size: 0.8rem; margin-top: 10px;">Share the code with your partner.</p>
     </div>
 
     <div id="dashboard" class="view">
-        <h2 id="welcome-msg">Welcome!</h2>
-        <div id="status-area">
-            </div>
-        <button class="btn" id="start-btn" onclick="startSelection()">Start Swiping</button>
-        <button class="btn btn-outline" onclick="logout()">Log Out (Let Partner Login)</button>
+        <h2>Lobby</h2>
+        <div id="status-area" style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 15px; width: 100%; text-align: center; margin-bottom: 20px;"></div>
+        <button class="btn-gamified" id="start-btn" onclick="startGame()">Start Swiping</button>
+        <button class="btn-gamified btn-secondary" onclick="logout()">Leave</button>
     </div>
 
     <div id="selection" class="view">
-        <h2>Is this spicy enough?</h2>
-        <div class="card-stack">
-            <div class="activity-card" id="current-activity">Loading...</div>
+        <div class="progress-container"><div class="progress-fill" id="progress"></div></div>
+        
+        <div class="deck-container" id="deck">
+            <div class="card" id="active-card">
+                <div>Drag Me!</div>
+                <div style="font-size:0.8rem; opacity:0.6; margin-top:10px;">(Left = No, Right = Yes)</div>
+            </div>
         </div>
-        <div class="action-buttons">
-            <button class="choice-btn no-btn" onclick="handleChoice(false)">❌ Nope</button>
-            <button class="choice-btn yes-btn" onclick="handleChoice(true)">🔥 Yes</button>
+
+        <div class="game-controls">
+            <button class="control-btn btn-no" onclick="handleButtonSwipe(false)">✖</button>
+            <button class="control-btn btn-yes" onclick="handleButtonSwipe(true)">♥</button>
         </div>
     </div>
 
     <div id="bucket" class="view">
-        <h2>The Jar is Full!</h2>
-        <p>You and your partner have matched on <span id="match-count">0</span> items.</p>
-        <div class="bucket-anim">🍯</div>
-        
-        <div id="result-display" style="display:none;">
-            <p>Tonight's Activity:</p>
-            <div class="result-box" id="result-text"></div>
-        </div>
-
-        <button class="btn" id="pull-btn" onclick="pullRandom()">Pull from Jar</button>
-        <button class="btn btn-secondary" onclick="resetGroup()">Reset & Start Over</button>
+        <div class="jar-glow">🍯</div>
+        <h2>It's a Match!</h2>
+        <p>Matches found: <span id="match-count" style="color: var(--accent); font-weight:bold;">0</span></p>
+        <div id="result-wrapper" style="width: 100%; margin: 20px 0; min-height: 100px; display: flex; align-items: center; justify-content: center;"></div>
+        <button class="btn-gamified" onclick="pullRandom()">Open Jar</button>
+        <button class="btn-gamified btn-secondary" onclick="resetGroup()">Reset</button>
     </div>
-
 </div>
 
 <script>
-    // --- CONFIGURATION ---
-    // EDIT THIS LIST for your specific "NSFW" needs. 
-    // Keeping it "PG-13 / Suggestive" for the demo code.
-    const ACTIVITIES = [
-        "Sensual Massage with Oil",
-        "Cook Dinner Together (Aprons Only)",
-        "Blindfolded Taste Test",
-        "Roleplay: Strangers at a Bar",
-        "Truth or Dare: Spicy Edition",
-        "Watch a Steamy Movie",
-        "Shower Together",
-        "Full Body Paint",
-        "Slow Dancing in Living Room",
-        "Breakfast in Bed (Tomorrow)"
+    // --- DATA ---
+    const CARDS = [
+        "Sensual Massage", "Roleplay Strangers", "Cook Naked", 
+        "Truth or Dare", "Blindfolds", "Shower Together", 
+        "Gentle Bondage", "Strip Poker", "Watch 50 Shades", 
+        "Quickie", "Full Body Paint", "Whisper Fantasies", "No Phones Night"
     ];
 
-    // --- STATE MANAGEMENT ---
-    let currentUser = null;
-    let currentGroup = null;
-    let currentActivityIndex = 0;
-    let userChoices = [];
+    let currentUser = null, currentGroup = null, cardIndex = 0, choices = [];
+    const vibrate = (ms) => { if(navigator.vibrate) navigator.vibrate(ms); }
 
     // --- NAVIGATION ---
-    function navTo(viewId) {
-        document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-        document.getElementById(viewId).classList.add('active');
+    function navTo(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
     }
 
-    // --- AUTH & GROUP LOGIC ---
+    // --- AUTH & SYNC ---
     function handleLogin() {
-        const username = document.getElementById('username').value.trim();
-        const groupName = document.getElementById('groupName').value.trim();
-
-        if (!username || !groupName) return alert("Please fill in both fields");
-
-        currentUser = username;
-        currentGroup = groupName;
-
-        // Load group data from LocalStorage
-        let groupData = JSON.parse(localStorage.getItem('spice_' + currentGroup)) || {
-            users: [],
-            selections: {}
-        };
-
-        // Add user if new
-        if (!groupData.users.includes(currentUser)) {
-            if (groupData.users.length >= 2) {
-                return alert("Group is full! Only 2 users allowed per jar.");
-            }
-            groupData.users.push(currentUser);
+        const u = document.getElementById('username').value.trim();
+        const g = document.getElementById('groupName').value.trim();
+        if(!u || !g) return alert("Required!");
+        currentUser = u; currentGroup = g;
+        
+        let data = getGroupData();
+        if(!data.users.includes(u)) {
+            if(data.users.length >= 2) return alert("Room full!");
+            data.users.push(u);
+            saveGroupData(data);
         }
-
-        localStorage.setItem('spice_' + currentGroup, JSON.stringify(groupData));
-        
-        checkGroupStatus();
+        checkLobby();
     }
+    function getGroupData() { return JSON.parse(localStorage.getItem('spice_' + currentGroup)) || { users: [], selections: {} }; }
+    function saveGroupData(data) { localStorage.setItem('spice_' + currentGroup, JSON.stringify(data)); }
 
-    function checkGroupStatus() {
-        const groupData = JSON.parse(localStorage.getItem('spice_' + currentGroup));
-        const userHasPlayed = groupData.selections[currentUser] !== undefined;
+    function checkLobby() {
+        let data = getGroupData();
+        const finished = data.selections[currentUser];
+        const partner = data.users.find(u => u !== currentUser);
+        const partnerFinished = partner && data.selections[partner];
 
-        document.getElementById('welcome-msg').innerText = `Hi, ${currentUser}!`;
-        
-        const statusDiv = document.getElementById('status-area');
-        let html = `<p>Group: <strong>${currentGroup}</strong></p>`;
-        
-        html += `<p>Users in Jar: ${groupData.users.join(' & ')}</p>`;
+        let msg = `<div style="font-size:1.2rem; margin-bottom:10px;">Players</div>`;
+        msg += `<div style="color:var(--secondary)">● ${currentUser}</div>`;
+        msg += partner ? `<div style="color:var(--secondary)">● ${partner}</div>` : `<div style="color:var(--text-muted)">○ Waiting...</div>`;
+        document.getElementById('status-area').innerHTML = msg;
 
-        if (userHasPlayed) {
-            html += `<p>✅ You have finished your selections.</p>`;
+        if (finished && partnerFinished) {
+            calcMatches();
+            navTo('bucket');
+        } else if (finished) {
+            document.getElementById('status-area').innerHTML += `<br><strong>Waiting for partner...</strong>`;
             document.getElementById('start-btn').style.display = 'none';
-            
-            // Check if partner played
-            const otherUser = groupData.users.find(u => u !== currentUser);
-            if (otherUser && groupData.selections[otherUser]) {
-                html += `<p>✅ ${otherUser} has also finished!</p>`;
-                setTimeout(() => navTo('bucket'), 1000); // Go to bucket
-                calculateMatches();
-                return;
-            } else {
-                html += `<p>⏳ Waiting for partner to finish...</p>`;
-            }
+            navTo('dashboard');
         } else {
-            html += `<p>Ready to pick your favorites?</p>`;
-            document.getElementById('start-btn').style.display = 'block';
+            navTo('dashboard');
         }
-
-        statusDiv.innerHTML = html;
-        navTo('dashboard');
     }
 
-    // --- SELECTION LOGIC ---
-    function startSelection() {
-        currentActivityIndex = 0;
-        userChoices = [];
-        showActivity();
+    // --- GAMEPLAY ENGINE ---
+    function startGame() {
+        cardIndex = 0; choices = [];
+        renderCard();
         navTo('selection');
     }
 
-    function showActivity() {
-        if (currentActivityIndex >= ACTIVITIES.length) {
-            finishSelection();
+    function renderCard() {
+        const deck = document.getElementById('deck');
+        
+        if(cardIndex >= CARDS.length) {
+            finishGame();
             return;
         }
-        document.getElementById('current-activity').innerText = ACTIVITIES[currentActivityIndex];
+
+        // Create fresh card element
+        deck.innerHTML = ''; 
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.id = 'active-card';
+        card.innerText = CARDS[cardIndex];
+        deck.appendChild(card);
+
+        // Initialize Swipe Logic for this specific card
+        initSwipe(card);
+
+        // Progress
+        const pct = (cardIndex / CARDS.length) * 100;
+        document.getElementById('progress').style.width = pct + '%';
     }
 
-    function handleChoice(liked) {
-        // Store index of liked item
-        if (liked) {
-            userChoices.push(currentActivityIndex);
-        }
-        currentActivityIndex++;
-        showActivity();
+    // --- SWIPE PHYSICS LOGIC ---
+    function initSwipe(card) {
+        let startX = 0, currentX = 0, isDragging = false;
+
+        const start = (x) => {
+            isDragging = true;
+            startX = x;
+            card.style.transition = 'none'; // Remove transition for instant drag
+        };
+
+        const move = (x) => {
+            if (!isDragging) return;
+            currentX = x;
+            const deltaX = currentX - startX;
+            const rotate = deltaX * 0.1; // 100px move = 10deg rotate
+            
+            // Apply physics
+            card.style.transform = `translateX(${deltaX}px) rotate(${rotate}deg)`;
+
+            // Visual hints could go here (e.g. changing opacity)
+        };
+
+        const end = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            const deltaX = currentX - startX;
+            const threshold = 100; // How far to swipe to count
+
+            if (Math.abs(deltaX) > threshold) {
+                // Completed Swipe
+                const liked = deltaX > 0;
+                finalizeSwipe(liked, card);
+            } else {
+                // Snap Back
+                card.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                card.style.transform = 'translateX(0) rotate(0)';
+            }
+        };
+
+        // Touch Events
+        card.addEventListener('touchstart', e => start(e.touches[0].clientX));
+        card.addEventListener('touchmove', e => move(e.touches[0].clientX));
+        card.addEventListener('touchend', end);
+
+        // Mouse Events (for desktop testing)
+        card.addEventListener('mousedown', e => start(e.clientX));
+        document.addEventListener('mousemove', e => { if(isDragging) move(e.clientX); });
+        document.addEventListener('mouseup', end);
     }
 
-    function finishSelection() {
-        let groupData = JSON.parse(localStorage.getItem('spice_' + currentGroup));
-        groupData.selections[currentUser] = userChoices;
-        localStorage.setItem('spice_' + currentGroup, JSON.stringify(groupData));
-        checkGroupStatus();
+    function handleButtonSwipe(liked) {
+        const card = document.getElementById('active-card');
+        if(!card) return;
+        finalizeSwipe(liked, card);
+    }
+
+    function finalizeSwipe(liked, card) {
+        vibrate(30);
+        
+        // Add animation class based on direction
+        card.style.transition = 'transform 0.5s ease';
+        // Need a small timeout to ensure transition takes over if dragging
+        requestAnimationFrame(() => {
+            card.classList.add(liked ? 'animate-yes' : 'animate-no');
+        });
+
+        if(liked) choices.push(cardIndex);
+
+        setTimeout(() => {
+            cardIndex++;
+            renderCard();
+        }, 300);
+    }
+
+    function finishGame() {
+        let data = getGroupData();
+        data.selections[currentUser] = choices;
+        saveGroupData(data);
+        checkLobby();
     }
 
     function logout() {
-        currentUser = null;
-        currentGroup = null;
-        document.getElementById('username').value = '';
+        currentUser = null; currentGroup = null;
         navTo('landing');
     }
 
-    // --- BUCKET / MATCH LOGIC ---
-    let commonMatches = [];
-
-    function calculateMatches() {
-        const groupData = JSON.parse(localStorage.getItem('spice_' + currentGroup));
-        const users = groupData.users;
-        
-        if (users.length < 2) return;
-
-        const listA = groupData.selections[users[0]];
-        const listB = groupData.selections[users[1]];
-
-        // Find intersection
-        const matchIndices = listA.filter(value => listB.includes(value));
-        
-        // Convert indices back to text
-        commonMatches = matchIndices.map(index => ACTIVITIES[index]);
-        
-        document.getElementById('match-count').innerText = commonMatches.length;
+    // --- RESULTS ---
+    let matches = [];
+    function calcMatches() {
+        let data = getGroupData();
+        let u1 = data.selections[data.users[0]];
+        let u2 = data.selections[data.users[1]];
+        let intersection = u1.filter(x => u2.includes(x));
+        matches = intersection.map(i => CARDS[i]);
+        document.getElementById('match-count').innerText = matches.length;
     }
 
     function pullRandom() {
-        if (commonMatches.length === 0) {
-            document.getElementById('result-display').style.display = 'block';
-            document.getElementById('result-text').innerText = "No matches found! Try being more open-minded? 😉";
+        vibrate(100);
+        const wrapper = document.getElementById('result-wrapper');
+        if(matches.length === 0) {
+            wrapper.innerHTML = `<div class="result-card">No matches! 🧊</div>`;
             return;
         }
-
-        const randomIndex = Math.floor(Math.random() * commonMatches.length);
-        const winner = commonMatches[randomIndex];
-
-        // UI Reveal
-        const resultBox = document.getElementById('result-text');
-        resultBox.innerText = "...";
-        document.getElementById('result-display').style.display = 'block';
-        
-        let flashCount = 0;
-        let flashInterval = setInterval(() => {
-            resultBox.innerText = commonMatches[Math.floor(Math.random() * commonMatches.length)];
-            flashCount++;
-            if(flashCount > 10) {
-                clearInterval(flashInterval);
-                resultBox.innerText = winner;
+        let counter = 0;
+        let shuffle = setInterval(() => {
+            wrapper.innerHTML = `<div class="result-card" style="transform:scale(1)">${matches[Math.floor(Math.random()*matches.length)]}</div>`;
+            counter++;
+            if(counter > 15) {
+                clearInterval(shuffle);
+                showWinner();
             }
-        }, 100);
+        }, 60);
+    }
+
+    function showWinner() {
+        const winner = matches[Math.floor(Math.random()*matches.length)];
+        document.getElementById('result-wrapper').innerHTML = `<div class="result-card" style="border: 3px solid var(--accent)">${winner}</div>`;
+        fireConfetti();
+        vibrate([100, 50, 100]); 
     }
 
     function resetGroup() {
-        if(confirm("This will clear all choices for this group. Are you sure?")) {
+        if(confirm("Reset everything?")) {
             localStorage.removeItem('spice_' + currentGroup);
             logout();
         }
     }
-</script>
 
+    function fireConfetti() {
+        const canvas = document.getElementById('confetti');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        let pieces = [];
+        for(let i=0; i<100; i++) {
+            pieces.push({
+                x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
+                color: `hsl(${Math.random()*360}, 100%, 50%)`, size: Math.random() * 8 + 2, speed: Math.random() * 5 + 2
+            });
+        }
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            pieces.forEach(p => {
+                ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size);
+                p.y += p.speed;
+                if(p.y > canvas.height) p.y = -10;
+            });
+            requestAnimationFrame(draw);
+        }
+        draw();
+        setTimeout(() => pieces = [], 4000);
+    }
+</script>
 </body>
 </html>
