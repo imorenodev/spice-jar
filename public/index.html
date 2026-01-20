@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spice Jar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* (Reuse your existing styles from the previous V4/V5 response here) */
+        /* For brevity, I am assuming the styles are present. */
+        :root { --bg-gradient: linear-gradient(135deg, #2b0a3d 0%, #4a1c40 100%); --card-bg: #1e1b2e; --primary: #ff4757; --secondary: #2ed573; --accent: #ffa502; --text-main: #ffffff; --text-muted: #a4b0be; }
+        body { margin: 0; padding: 0; background: var(--bg-gradient); font-family: 'Quicksand', sans-serif; color: white; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        .app-frame { width: 100%; height: 100%; max-width: 420px; background: rgba(0,0,0,0.2); position: relative; display: flex; flex-direction: column; }
+        .view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; padding: 2rem; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.3s; background: var(--bg-gradient); }
+        .view.active { opacity: 1; pointer-events: auto; z-index: 10; }
+        input { padding: 15px; border-radius: 12px; border: none; width: 100%; margin-bottom: 10px; text-align: center; }
+        button { background: var(--primary); color: white; border: none; padding: 15px; width: 100%; border-radius: 50px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .card { background: var(--card-bg); width: 100%; height: 300px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 20px 0; }
+        /* Add the rest of your styles here... */
+    </style>
+</head>
+<body>
+
+<div class="app-frame">
+    <div id="landing" class="view active">
+        <h1>Spice Jar 🌶️</h1>
+        <button onclick="navTo('auth')">Enter</button>
+    </div>
+
+    <div id="auth" class="view">
+        <h2>Identity</h2>
+        <input type="text" id="username" placeholder="Name">
+        <input type="text" id="roomCode" placeholder="Room Code">
+        <button id="join-btn" onclick="handleJoin()">Join</button>
+    </div>
+
+    <div id="dashboard" class="view">
+        <h2>Lobby</h2>
+        <div id="status-area" style="text-align: center; margin-bottom: 20px;"></div>
+        <button id="start-btn" onclick="startGame()">Start</button>
+    </div>
+
+    <div id="selection" class="view">
+        <div id="deck" style="width:100%;"></div>
+        <div style="display:flex; gap:10px; width:100%;">
+            <button style="background:#333" onclick="swipe(false)">Skip</button>
+            <button style="background:var(--secondary)" onclick="swipe(true)">Like</button>
+        </div>
+    </div>
+
+    <div id="bucket" class="view">
+        <h2>Matched!</h2>
+        <div id="result-display" style="font-size: 1.5rem; margin: 20px 0;"></div>
+        <button onclick="reveal()">Open Jar</button>
+        <button style="background:transparent; border:1px solid white;" onclick="resetRoom()">Reset</button>
+    </div>
+</div>
+
+<script>
+    const CARDS = ["Massage", "Make Out", "Blindfold", "Shower", "Roleplay", "Paint", "Cookie Baking"];
+    let state = { user: '', room: '', slot: '', choices: [] };
+    let pollInterval = null;
+
+    // --- API HELPER ---
+    async function api(payload) {
+        try {
+            const res = await fetch('/api', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            return await res.json();
+        } catch(e) { alert("Connection Error"); return null; }
+    }
+
+    function navTo(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    // --- ACTIONS ---
+    async function handleJoin() {
+        const u = document.getElementById('username').value;
+        const r = document.getElementById('roomCode').value.toLowerCase();
+        if(!u || !r) return alert("Required");
+
+        const res = await api({ action: 'join', username: u, roomCode: r });
+        if(res.error) return alert(res.error);
+
+        state.user = u; state.room = r; state.slot = res.slot;
+        
+        startPolling();
+        navTo('dashboard');
+    }
+
+    function startPolling() {
+        if(pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(async () => {
+            const roomData = await api({ action: 'status', roomCode: state.room });
+            updateUI(roomData);
+        }, 2000); // Check every 2 seconds
+    }
+
+    function updateUI(room) {
+        if(!room) return;
+        
+        // Lobby Status
+        const p1 = room.user1_name || '...';
+        const p2 = room.user2_name || 'Waiting...';
+        const p1Done = room.user1_choices && room.user1_choices.length > 0;
+        const p2Done = room.user2_choices && room.user2_choices.length > 0;
+
+        document.getElementById('status-area').innerHTML = `
+            <p>${p1} ${p1Done ? '✅' : ''}</p>
+            <p>${p2} ${p2Done ? '✅' : ''}</p>
+        `;
+
+        // Check if both done -> Move to bucket
+        if(p1Done && p2Done && document.getElementById('dashboard').classList.contains('active')) {
+            // Only move if we aren't already there
+             calcMatches(room.user1_choices, room.user2_choices);
+             navTo('bucket');
+        } else if (p1Done && p2Done) {
+             // If we are already in bucket, just update matches silently if needed
+             calcMatches(room.user1_choices, room.user2_choices);
+        }
+    }
+
+    // --- GAME ---
+    let cardIdx = 0;
+    function startGame() {
+        cardIdx = 0; state.choices = [];
+        renderCard();
+        navTo('selection');
+    }
+
+    function renderCard() {
+        if(cardIdx >= CARDS.length) {
+            submit();
+            return;
+        }
+        document.getElementById('deck').innerHTML = `<div class="card">${CARDS[cardIdx]}</div>`;
+    }
+
+    function swipe(liked) {
+        if(liked) state.choices.push(cardIdx);
+        cardIdx++;
+        renderCard();
+    }
+
+    async function submit() {
+        document.getElementById('deck').innerHTML = '<div class="card">Sending...</div>';
+        await api({ action: 'submit', roomCode: state.room, slot: state.slot, choices: state.choices });
+        navTo('dashboard');
+    }
+
+    // --- RESULT ---
+    let matches = [];
+    function calcMatches(c1, c2) {
+        if(!c1 || !c2) return;
+        const common = c1.filter(x => c2.includes(x));
+        matches = common.map(i => CARDS[i]);
+    }
+
+    function reveal() {
+        if(matches.length === 0) {
+             document.getElementById('result-display').innerText = "No Matches 🧊";
+             return;
+        }
+        const winner = matches[Math.floor(Math.random() * matches.length)];
+        document.getElementById('result-display').innerText = winner;
+    }
+
+    async function resetRoom() {
+        await api({ action: 'reset', roomCode: state.room });
+        location.reload();
+    }
+</script>
+</body>
+</html>
