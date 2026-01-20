@@ -6,62 +6,162 @@
     <title>Spice Jar</title>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* (Reuse your existing styles from the previous V4/V5 response here) */
-        /* For brevity, I am assuming the styles are present. */
-        :root { --bg-gradient: linear-gradient(135deg, #2b0a3d 0%, #4a1c40 100%); --card-bg: #1e1b2e; --primary: #ff4757; --secondary: #2ed573; --accent: #ffa502; --text-main: #ffffff; --text-muted: #a4b0be; }
-        body { margin: 0; padding: 0; background: var(--bg-gradient); font-family: 'Quicksand', sans-serif; color: white; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-        .app-frame { width: 100%; height: 100%; max-width: 420px; background: rgba(0,0,0,0.2); position: relative; display: flex; flex-direction: column; }
-        .view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; padding: 2rem; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.3s; background: var(--bg-gradient); }
-        .view.active { opacity: 1; pointer-events: auto; z-index: 10; }
-        input { padding: 15px; border-radius: 12px; border: none; width: 100%; margin-bottom: 10px; text-align: center; }
-        button { background: var(--primary); color: white; border: none; padding: 15px; width: 100%; border-radius: 50px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .card { background: var(--card-bg); width: 100%; height: 300px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 20px 0; }
-        /* Add the rest of your styles here... */
+        /* --- CORE VISUALS (From your V3) --- */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #2b0a3d 0%, #4a1c40 100%);
+            --card-bg: #1e1b2e;
+            --primary: #ff4757;
+            --secondary: #2ed573;
+            --accent: #ffa502;
+            --text-main: #ffffff;
+            --text-muted: #a4b0be;
+            --shadow: 0 10px 30px rgba(0,0,0,0.5);
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+        body { margin: 0; padding: 0; background: var(--bg-gradient); font-family: 'Quicksand', sans-serif; color: var(--text-main); height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+
+        .app-frame { width: 100%; height: 100%; max-width: 420px; background: rgba(0,0,0,0.2); position: relative; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* VIEWS & TRANSITIONS */
+        .view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; padding: 2rem; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: scale(0.95); backdrop-filter: blur(5px); z-index: 1; }
+        .view.active { opacity: 1; pointer-events: auto; transform: scale(1); z-index: 10; }
+
+        /* TYPOGRAPHY & INPUTS */
+        h1 { font-size: 3rem; margin: 0; background: -webkit-linear-gradient(0deg, #ff4757, #ffa502); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+        h2 { font-size: 1.8rem; margin-bottom: 1rem; text-align: center; }
+        p { text-align: center; color: var(--text-muted); line-height: 1.5; }
+
+        .input-glass { background: var(--glass); border: 1px solid rgba(255,255,255,0.2); padding: 15px; border-radius: 12px; color: white; width: 100%; margin-bottom: 15px; font-size: 1rem; outline: none; text-align: center; transition: 0.3s; }
+        .input-glass:focus { border-color: var(--primary); background: rgba(255,255,255,0.15); }
+
+        .btn-gamified { background: linear-gradient(90deg, #ff4757, #ff6b81); color: white; border: none; padding: 16px; width: 100%; border-radius: 50px; font-size: 1.1rem; font-weight: 700; box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4); cursor: pointer; position: relative; overflow: hidden; transition: transform 0.1s; margin-top: 10px; }
+        .btn-gamified:active { transform: scale(0.96); }
+        .btn-secondary { background: transparent; border: 2px solid rgba(255,255,255,0.2); box-shadow: none; }
+
+        /* DECK & CARDS */
+        .deck-container { width: 100%; height: 420px; position: relative; margin: 20px 0; perspective: 1000px; touch-action: none; }
+        .card { width: 100%; height: 100%; background: var(--card-bg); border-radius: 20px; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.1); transform-origin: 50% 100%; will-change: transform; cursor: grab; }
+        .card:active { cursor: grabbing; }
+
+        /* NEW: Card Content Styles */
+        .card-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 10px; color: white; }
+        .card-desc { font-size: 1rem; color: var(--text-muted); margin-bottom: 20px; font-style: italic; }
+        .card-spice { font-size: 1.2rem; background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 20px; margin-bottom: 20px; }
+
+        /* ANIMATIONS */
+        .animate-yes { animation: flyOutRight 0.5s forwards; }
+        .animate-no { animation: flyOutLeft 0.5s forwards; }
+        @keyframes flyOutRight { to { transform: translateX(150%) rotate(25deg); opacity: 0; } }
+        @keyframes flyOutLeft { to { transform: translateX(-150%) rotate(-25deg); opacity: 0; } }
+
+        /* CONTROLS */
+        .game-controls { display: flex; gap: 30px; width: 100%; justify-content: center; z-index: 20; }
+        .control-btn { width: 70px; height: 70px; border-radius: 50%; border: none; font-size: 2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .btn-no { background: #2f3542; color: #ff4757; }
+        .btn-yes { background: white; color: #2ed573; }
+        .control-btn:active { transform: scale(0.9); }
+
+        .progress-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 20px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--secondary); width: 0%; transition: width 0.3s; }
+
+        /* RESULTS & SLIDER (Added) */
+        .jar-glow { font-size: 5rem; filter: drop-shadow(0 0 20px rgba(255, 165, 2, 0.6)); animation: float 3s ease-in-out infinite; margin-bottom:0; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+        .result-card { background: white; color: #2b0a3d; padding: 1.5rem; border-radius: 20px; width: 100%; text-align: center; transform: scale(0); animation: popIn 0.5s forwards 0.2s; }
+        @keyframes popIn { to { transform: scale(1); } }
+
+        .spice-slider-container { width: 100%; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; margin-bottom: 20px; margin-top: 10px; }
+        .slider-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted); }
+        input[type=range] { width: 100%; -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 25px; width: 25px; border-radius: 50%; background: var(--primary); cursor: pointer; margin-top: -8px; box-shadow: 0 0 10px var(--primary); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; cursor: pointer; background: #4a1c40; border-radius: 5px; }
+
+        #confetti { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
     </style>
 </head>
 <body>
 
 <div class="app-frame">
+    <canvas id="confetti"></canvas>
+
     <div id="landing" class="view active">
-        <h1>Spice Jar 🌶️</h1>
-        <button onclick="navTo('auth')">Enter</button>
+        <div style="font-size: 4rem; margin-bottom:10px;">🌶️</div>
+        <h1>Spice Jar</h1>
+        <p>Swipe. Match. Play.</p>
+        <button class="btn-gamified" onclick="navTo('auth')">Enter</button>
     </div>
 
     <div id="auth" class="view">
         <h2>Identity</h2>
-        <input type="text" id="username" placeholder="Name">
-        <input type="text" id="roomCode" placeholder="Room Code">
-        <button id="join-btn" onclick="handleJoin()">Join</button>
+        <input type="text" id="username" class="input-glass" placeholder="Your Name">
+        <input type="text" id="roomCode" class="input-glass" placeholder="Room Code (e.g. 'sexy')">
+        <button id="join-btn" class="btn-gamified" onclick="handleJoin()">Join Room</button>
+        <p style="font-size: 0.8rem; margin-top: 10px;">Both partners use the same code.</p>
     </div>
 
     <div id="dashboard" class="view">
         <h2>Lobby</h2>
-        <div id="status-area" style="text-align: center; margin-bottom: 20px;"></div>
-        <button id="start-btn" onclick="startGame()">Start</button>
+        <div id="status-area" style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 15px; width: 100%; text-align: center; margin-bottom: 20px;"></div>
+        <button class="btn-gamified" id="start-btn" onclick="startGame()">Start Swiping</button>
     </div>
 
     <div id="selection" class="view">
-        <div id="deck" style="width:100%;"></div>
-        <div style="display:flex; gap:10px; width:100%;">
-            <button style="background:#333" onclick="swipe(false)">Skip</button>
-            <button style="background:var(--secondary)" onclick="swipe(true)">Like</button>
+        <div class="progress-container"><div class="progress-fill" id="progress"></div></div>
+        
+        <div class="deck-container" id="deck">
+            </div>
+
+        <div class="game-controls">
+            <button class="control-btn btn-no" onclick="handleButtonSwipe(false)">✖</button>
+            <button class="control-btn btn-yes" onclick="handleButtonSwipe(true)">♥</button>
         </div>
     </div>
 
     <div id="bucket" class="view">
+        <div class="jar-glow">🍯</div>
         <h2>Matched!</h2>
-        <div id="result-display" style="font-size: 1.5rem; margin: 20px 0;"></div>
-        <button onclick="reveal()">Open Jar</button>
-        <button style="background:transparent; border:1px solid white;" onclick="resetRoom()">Reset</button>
+        <p>Common Interests: <span id="match-count" style="color:var(--accent); font-weight:bold">0</span></p>
+        
+        <div class="spice-slider-container">
+            <div class="slider-label">
+                <span>Heat Limit:</span>
+                <span id="slider-val-display">🌶️🌶️🌶️🌶️🌶️</span>
+            </div>
+            <input type="range" id="spice-limit" min="1" max="5" value="5" oninput="updateSliderDisplay(this.value)">
+        </div>
+
+        <div id="result-wrapper" style="width: 100%; margin: 10px 0; min-height: 120px; display: flex; align-items: center; justify-content: center;"></div>
+        
+        <button class="btn-gamified" onclick="pullRandom()">Open Jar</button>
+        <button class="btn-gamified btn-secondary" onclick="resetRoom()">Reset Room</button>
     </div>
 </div>
 
 <script>
-    const CARDS = ["Massage", "Make Out", "Blindfold", "Shower", "Roleplay", "Paint", "Cookie Baking"];
-    let state = { user: '', room: '', slot: '', choices: [] };
-    let pollInterval = null;
+    // --- 1. DATA (With Spice Levels) ---
+    const CARDS = [
+        { name: "Massage", desc: "10 min back rub.", level: 1 },
+        { name: "Make Out", desc: "Just like high school.", level: 2 },
+        { name: "Blindfold", desc: "Sensory deprivation fun.", level: 3 },
+        { name: "Shower", desc: "Get clean together.", level: 2 },
+        { name: "Strip Poker", desc: "Loser removes a layer.", level: 3 },
+        { name: "Roleplay", desc: "Strangers at a bar.", level: 4 },
+        { name: "Full Paint", desc: "Body painting.", level: 5 }
+    ];
 
-    // --- API HELPER ---
+    let state = { user: '', room: '', slot: '', choices: [] };
+    let cardIndex = 0;
+    let pollInterval = null;
+    let allMatches = []; // Raw matches from DB
+
+    const vibrate = (ms) => { if(navigator.vibrate) navigator.vibrate(ms); }
+    const getPeppers = (n) => "🌶️".repeat(n);
+    const updateSliderDisplay = (v) => document.getElementById('slider-val-display').innerText = getPeppers(v);
+
+    // --- 2. API HELPER (Talking to Netlify Functions) ---
     async function api(payload) {
         try {
             const res = await fetch('/api', {
@@ -69,7 +169,7 @@
                 body: JSON.stringify(payload)
             });
             return await res.json();
-        } catch(e) { alert("Connection Error"); return null; }
+        } catch(e) { console.error(e); return { error: "Network Error" }; }
     }
 
     function navTo(id) {
@@ -77,102 +177,245 @@
         document.getElementById(id).classList.add('active');
     }
 
-    // --- ACTIONS ---
+    // --- 3. AUTH & LOBBY ---
     async function handleJoin() {
-        const u = document.getElementById('username').value;
-        const r = document.getElementById('roomCode').value.toLowerCase();
-        if(!u || !r) return alert("Required");
-
+        const u = document.getElementById('username').value.trim();
+        const r = document.getElementById('roomCode').value.trim().toLowerCase();
+        const btn = document.getElementById('join-btn');
+        
+        if(!u || !r) return alert("Please fill in all fields");
+        
+        btn.innerText = "Connecting...";
         const res = await api({ action: 'join', username: u, roomCode: r });
-        if(res.error) return alert(res.error);
+        
+        if(res.error) {
+            btn.innerText = "Join Room";
+            return alert(res.error);
+        }
 
         state.user = u; state.room = r; state.slot = res.slot;
-        
         startPolling();
         navTo('dashboard');
     }
 
     function startPolling() {
         if(pollInterval) clearInterval(pollInterval);
-        pollInterval = setInterval(async () => {
+        // Poll immediately then every 2s
+        const poll = async () => {
             const roomData = await api({ action: 'status', roomCode: state.room });
             updateUI(roomData);
-        }, 2000); // Check every 2 seconds
+        };
+        poll();
+        pollInterval = setInterval(poll, 2000);
     }
 
     function updateUI(room) {
         if(!room) return;
-        
-        // Lobby Status
+
         const p1 = room.user1_name || '...';
         const p2 = room.user2_name || 'Waiting...';
         const p1Done = room.user1_choices && room.user1_choices.length > 0;
         const p2Done = room.user2_choices && room.user2_choices.length > 0;
 
         document.getElementById('status-area').innerHTML = `
-            <p>${p1} ${p1Done ? '✅' : ''}</p>
-            <p>${p2} ${p2Done ? '✅' : ''}</p>
+            <div style="font-size:1.2rem; margin-bottom:10px;">Room: ${room.room_code}</div>
+            <div style="color:var(--secondary)">● ${p1} ${p1Done ? '✅' : ''}</div>
+            <div style="color:var(--secondary)">● ${p2} ${p2Done ? '✅' : ''}</div>
         `;
 
-        // Check if both done -> Move to bucket
-        if(p1Done && p2Done && document.getElementById('dashboard').classList.contains('active')) {
-            // Only move if we aren't already there
-             calcMatches(room.user1_choices, room.user2_choices);
-             navTo('bucket');
-        } else if (p1Done && p2Done) {
-             // If we are already in bucket, just update matches silently if needed
-             calcMatches(room.user1_choices, room.user2_choices);
+        // Hide start button if I am done
+        const amIDone = (state.slot === 'user1' && p1Done) || (state.slot === 'user2' && p2Done);
+        document.getElementById('start-btn').style.display = amIDone ? 'none' : 'block';
+
+        if(amIDone) document.getElementById('status-area').innerHTML += `<br><small>Waiting for partner...</small>`;
+
+        // Auto-navigate to bucket if both done
+        if(p1Done && p2Done) {
+            calcMatches(room.user1_choices, room.user2_choices);
+            // Only nav if not already there
+            if(!document.getElementById('bucket').classList.contains('active')) {
+                navTo('bucket');
+            }
         }
     }
 
-    // --- GAME ---
-    let cardIdx = 0;
+    // --- 4. GAMEPLAY (With Physics) ---
     function startGame() {
-        cardIdx = 0; state.choices = [];
+        cardIndex = 0; state.choices = [];
         renderCard();
         navTo('selection');
     }
 
     function renderCard() {
-        if(cardIdx >= CARDS.length) {
-            submit();
+        const deck = document.getElementById('deck');
+        if(cardIndex >= CARDS.length) {
+            submitChoices();
             return;
         }
-        document.getElementById('deck').innerHTML = `<div class="card">${CARDS[cardIdx]}</div>`;
+
+        deck.innerHTML = ''; 
+        const data = CARDS[cardIndex];
+        
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.id = 'active-card';
+        // HTML Template for Spice Level + Desc
+        card.innerHTML = `
+            <div class="card-title">${data.name}</div>
+            <div class="card-desc">"${data.desc}"</div>
+            <div class="card-spice">${getPeppers(data.level)}</div>
+            <div style="font-size:0.8rem; opacity:0.5; margin-top:auto;">Drag Left/Right</div>
+        `;
+        deck.appendChild(card);
+
+        initSwipe(card);
+
+        const pct = (cardIndex / CARDS.length) * 100;
+        document.getElementById('progress').style.width = pct + '%';
     }
 
-    function swipe(liked) {
-        if(liked) state.choices.push(cardIdx);
-        cardIdx++;
-        renderCard();
+    // --- SWIPE PHYSICS (Preserved) ---
+    function initSwipe(card) {
+        let startX = 0, currentX = 0, isDragging = false;
+
+        const start = (x) => {
+            isDragging = true; startX = x;
+            card.style.transition = 'none';
+        };
+
+        const move = (x) => {
+            if (!isDragging) return;
+            currentX = x;
+            const deltaX = currentX - startX;
+            const rotate = deltaX * 0.1;
+            card.style.transform = `translateX(${deltaX}px) rotate(${rotate}deg)`;
+        };
+
+        const end = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            const deltaX = currentX - startX;
+            if (Math.abs(deltaX) > 80) { // Threshold
+                finalizeSwipe(deltaX > 0, card);
+            } else {
+                card.style.transition = 'transform 0.3s ease';
+                card.style.transform = 'translateX(0) rotate(0)';
+            }
+        };
+
+        card.addEventListener('touchstart', e => start(e.touches[0].clientX));
+        card.addEventListener('touchmove', e => move(e.touches[0].clientX));
+        card.addEventListener('touchend', end);
+        card.addEventListener('mousedown', e => start(e.clientX));
+        document.addEventListener('mousemove', e => { if(isDragging) move(e.clientX); });
+        document.addEventListener('mouseup', end);
     }
 
-    async function submit() {
+    function handleButtonSwipe(liked) {
+        const card = document.getElementById('active-card');
+        if(card) finalizeSwipe(liked, card);
+    }
+
+    function finalizeSwipe(liked, card) {
+        vibrate(30);
+        card.style.transition = 'transform 0.5s ease';
+        requestAnimationFrame(() => card.classList.add(liked ? 'animate-yes' : 'animate-no'));
+
+        if(liked) state.choices.push(cardIndex);
+
+        setTimeout(() => {
+            cardIndex++;
+            renderCard();
+        }, 300);
+    }
+
+    async function submitChoices() {
         document.getElementById('deck').innerHTML = '<div class="card">Sending...</div>';
         await api({ action: 'submit', roomCode: state.room, slot: state.slot, choices: state.choices });
+        // Return to dashboard to wait for partner
         navTo('dashboard');
     }
 
-    // --- RESULT ---
-    let matches = [];
+    // --- 5. RESULTS & FILTERING ---
     function calcMatches(c1, c2) {
         if(!c1 || !c2) return;
-        const common = c1.filter(x => c2.includes(x));
-        matches = common.map(i => CARDS[i]);
+        const intersection = c1.filter(x => c2.includes(x));
+        allMatches = intersection.map(i => CARDS[i]);
+        document.getElementById('match-count').innerText = allMatches.length;
     }
 
-    function reveal() {
-        if(matches.length === 0) {
-             document.getElementById('result-display').innerText = "No Matches 🧊";
-             return;
+    function pullRandom() {
+        vibrate(100);
+        const wrapper = document.getElementById('result-wrapper');
+        const maxSpice = parseInt(document.getElementById('spice-limit').value);
+
+        // Filter by Slider
+        const filtered = allMatches.filter(c => c.level <= maxSpice);
+
+        if(filtered.length === 0) {
+            wrapper.innerHTML = `<div class="result-card">No matches at this level! 🌶️<br><small>Try increasing the slider.</small></div>`;
+            return;
         }
-        const winner = matches[Math.floor(Math.random() * matches.length)];
-        document.getElementById('result-display').innerText = winner;
+
+        // Shuffle Animation
+        let counter = 0;
+        let shuffle = setInterval(() => {
+            const r = filtered[Math.floor(Math.random() * filtered.length)];
+            wrapper.innerHTML = `
+                <div class="result-card" style="transform:scale(1)">
+                    <div style="font-size:1.2rem;">${r.name}</div>
+                    <div style="color:#666; font-size:0.9rem;">${getPeppers(r.level)}</div>
+                </div>`;
+            counter++;
+            if(counter > 15) {
+                clearInterval(shuffle);
+                showWinner(filtered);
+            }
+        }, 60);
+    }
+
+    function showWinner(list) {
+        const winner = list[Math.floor(Math.random() * list.length)];
+        const wrapper = document.getElementById('result-wrapper');
+        wrapper.innerHTML = `
+            <div class="result-card" style="border: 3px solid var(--accent)">
+                <div style="font-size:1.5rem; color:var(--primary); margin-bottom:5px;">${winner.name}</div>
+                <div style="font-style:italic; color:#555; font-size:0.9rem; margin-bottom:10px;">"${winner.desc}"</div>
+                <div>${getPeppers(winner.level)}</div>
+            </div>`;
+        fireConfetti();
+        vibrate([100, 50, 100]); 
     }
 
     async function resetRoom() {
-        await api({ action: 'reset', roomCode: state.room });
-        location.reload();
+        if(confirm("Reset room for both players?")) {
+            await api({ action: 'reset', roomCode: state.room });
+            location.reload();
+        }
+    }
+
+    // --- CONFETTI ---
+    function fireConfetti() {
+        const canvas = document.getElementById('confetti');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        let pieces = [];
+        for(let i=0; i<100; i++) pieces.push({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
+            color: `hsl(${Math.random()*360}, 100%, 50%)`, size: Math.random() * 8 + 2, speed: Math.random() * 5 + 2
+        });
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            pieces.forEach(p => {
+                ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size);
+                p.y += p.speed;
+                if(p.y > canvas.height) p.y = -10;
+            });
+            requestAnimationFrame(draw);
+        }
+        draw();
+        setTimeout(() => pieces = [], 4000);
     }
 </script>
 </body>
